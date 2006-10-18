@@ -5,13 +5,14 @@
 Summary:	wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
 Summary(pl):	wxPerl - wrapper toolkitu wxWidgets dla Perla
 Name:		perl-Wx
-Version:    0.27
+Version:	0.27
 Release:	1
 # same as perl
 License:	GPL v1+ or Artistic
 Group:		Development/Languages/Perl
 Source0:	http://www.cpan.org/modules/by-module/Wx/Wx-%{version}.tar.gz
 # Source0-md5:	348c65384bbbe48e77f2b57d0a10821e
+URL:		http://wxperl.sourceforge.net/
 BuildRequires:	perl-devel >= 1:5.8.0
 BuildRequires:	rpm-perlprov >= 4.1-13
 BuildRequires:  wxGTK2-%{?with_unicode:unicode-}devel >= 2.6.3-1
@@ -31,7 +32,7 @@ export WX_CONFIG=wx-gtk2-%{?with_unicode:unicode}%{!?with_unicode:ansi}-config
 %{__perl} Makefile.PL \
 	INSTALLDIRS=vendor
 %{__make} \
-    OPTIMIZE="%{rpmcflags}"
+	OPTIMIZE="%{rpmcflags}"
 
 %install
 rm -rf $RPM_BUILD_ROOT
