@@ -13,6 +13,7 @@ Group:		Development/Languages/Perl
 Source0:	http://www.cpan.org/modules/by-module/Wx/Wx-%{version}.tar.gz
 # Source0-md5:	8e65ea7a4ce27d26d84150a656ea8b9b
 URL:		http://wxperl.sourceforge.net/
+BuildRequires:	perl-Alien-wxWidgets >= 0.22
 BuildRequires:	perl-devel >= 1:5.8.0
 BuildRequires:	rpm-perlprov >= 4.1-13
 BuildRequires:  wxGTK2-%{?with_unicode:unicode-}devel >= 2.6.3-1
