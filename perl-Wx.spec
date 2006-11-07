@@ -1,9 +1,10 @@
-
-%bcond_with unicode
-
+#
+# Conditional build:
+%bcond_with	unicode	# unicode version of wxGTK2
+#
 %include	/usr/lib/rpm/macros.perl
 Summary:	wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
-Summary(pl):	wxPerl - wrapper toolkitu wxWidgets dla Perla
+Summary(pl):	wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla
 Name:		perl-Wx
 Version:	0.59
 Release:	0.1
@@ -20,10 +21,10 @@ BuildRequires:  wxGTK2-%{?with_unicode:unicode-}devel >= 2.6.3-1
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
-wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
+wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit.
 
 %description -l pl
-wxPerl - wrapper toolkitu wxWidgets dla Perla
+wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla.
 
 %prep
 %setup -q -n Wx-%{version}
