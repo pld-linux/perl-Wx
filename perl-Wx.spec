@@ -4,7 +4,7 @@
 #
 %include	/usr/lib/rpm/macros.perl
 Summary:	wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
-Summary(pl):	wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla
+Summary(pl.UTF-8):   wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla
 Name:		perl-Wx
 Version:	0.59
 Release:	0.1
@@ -23,7 +23,7 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 %description
 wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit.
 
-%description -l pl
+%description -l pl.UTF-8
 wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla.
 
 %prep
