@@ -61,9 +61,10 @@ Pakiet do rozwijania oprogramowania przy użyciu wxPerla.
 %setup -q -n Wx-%{version}
 
 %build
-export WX_CONFIG=wx-gtk%{?with_gtk3:3}%{!?with_gtk3:2}-%{?with_unicode:unicode}%{!?with_unicode:ansi}-config
 %{__perl} Makefile.PL \
-	INSTALLDIRS=vendor
+	INSTALLDIRS=vendor \
+	--wx-toolkit=gtk%{!?with_gtk3:2} \
+	--%{!?with_unicode:no-}wx-unicode
 %{__make} \
 	CC="%{__cxx}" \
 	OPTIMIZE="%{rpmcflags}"
