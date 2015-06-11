@@ -10,11 +10,12 @@
 %bcond_without	unicode	# ANSI instead of Unicode version of wxGTK
 %bcond_with	gtk3	# wxGTK3 instead of wxGTK2
 %bcond_with	tests	# "make test" (requires $DISPLAY)
-#
+
 %define		wxpkg	wxGTK%{?with_gtk3:3}%{!?with_gtk3:2}%{?with_unicode:-unicode}
 %define		wx_ver		%(rpm -q wxWidgets-devel --qf '%%{VERSION}')
 %define		wx_ver_tag	%(echo %{wx_ver} | tr . _)
 %define		alien_wxcfg	gtk%{!?with_gtk3:2}_%{wx_ver_tag}%{?with_unicode:_uni}_gcc_3_4
+%define		pdir	Wx
 %include	/usr/lib/rpm/macros.perl
 Summary:	wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
 Summary(pl.UTF-8):	wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla
