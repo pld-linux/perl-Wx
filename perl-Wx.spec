@@ -21,7 +21,7 @@ Summary:	wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
 Summary(pl.UTF-8):	wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla
 Name:		perl-Wx
 Version:	0.9932
-Release:	2
+Release:	3
 # same as perl
 License:	GPL v1+ or Artistic
 Group:		Development/Languages/Perl
