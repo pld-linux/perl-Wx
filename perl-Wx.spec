@@ -16,7 +16,6 @@
 %define		wx_ver_tag	%(echo %{wx_ver} | tr . _)
 %define		alien_wxcfg	gtk%{!?with_gtk3:2}_%{wx_ver_tag}%{?with_unicode:_uni}_gcc_3_4
 %define		pdir	Wx
-%include	/usr/lib/rpm/macros.perl
 Summary:	wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
 Summary(pl.UTF-8):	wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla
 Name:		perl-Wx
