@@ -44,6 +44,7 @@ BuildRequires:	perl(Alien::wxWidgets::Config::%{alien_wxcfg})
 BuildRequires:	perl(File::Spec::Functions) >= 0.82
 BuildRequires:	perl(if) >= 0.03
 BuildRequires:	rpm-perlprov >= 4.1-13
+BuildRequires:	rpmbuild(macros) >= 1.745
 Requires:	perl-Alien-wxWidgets >= 0.25
 # Load manually generated Perl dependencies, see note on top of spec file
 %(cat %{SOURCE1})
