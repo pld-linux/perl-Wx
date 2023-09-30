@@ -1,0 +1,1117 @@
+Description: Port wxPerl to wxWidgets 3.2
+Author: Scott Talbert <swt@techie.net>
+Last-Update: 2023-01-04
+
+--- a/Constant.xs
++++ b/Constant.xs
+@@ -2034,7 +2034,6 @@ static double constant( const char* name
+     r( wxLeftOf );                      // layout constraints
+ 
+     r( wxLOCALE_LOAD_DEFAULT );         // locale
+-    r( wxLOCALE_CONV_ENCODING );        // locale
+ 
+ #if WXPERL_W_VERSION_GE( 2, 7, 1 )
+     r( wxLayout_Default );
+@@ -2357,7 +2356,6 @@ static double constant( const char* name
+ #endif
+     r( wxNB_DEFAULT );                  // notebook
+ #if WXPERL_W_VERSION_GE( 2, 6, 0 )
+-    r( wxNB_FLAT );                     // notebook
+     r( wxNB_NOPAGETHEME );              // notebook
+ #endif
+ 
+@@ -2784,7 +2782,6 @@ static double constant( const char* name
+     r( wxTB_DOCKABLE );                 // toolbar
+     r( wxTB_HORIZONTAL );               // toolbar
+     r( wxTB_VERTICAL );                 // toolbar
+-    r( wxTB_3DBUTTONS );                // toolbar
+     r( wxTB_TEXT );                     // toolbar
+     r( wxTB_NOICONS );                  // toolbar
+ #if WXPERL_W_VERSION_GE( 2, 5, 1 )
+@@ -2885,8 +2882,6 @@ static double constant( const char* name
+     r( wxTEXT_TYPE_ANY );               // textctrl
+ #endif
+ 
+-    r( wxTINY_CAPTION_HORIZ );          // miniframe
+-    r( wxTINY_CAPTION_VERT );           // miniframe
+     r( wxTIMER_CONTINUOUS );            // timer
+     r( wxTIMER_ONE_SHOT );              // timer
+     r( wxTOP );                         // sizer layout constraints
+--- a/XS/Locale.xs
++++ b/XS/Locale.xs
+@@ -93,12 +93,11 @@ MODULE=Wx PACKAGE=Wx::Locale
+ #endif
+ 
+ wxLocale*
+-newLong( name, shorts = NULL, locale = NULL, loaddefault = true, convertencoding = wxPL_LOCALE_CONVERT_ENCODING )
++newLong( name, shorts = NULL, locale = NULL, loaddefault = true )
+     const wxChar* name
+     const wxChar* shorts = NO_INIT
+     const wxChar* locale = NO_INIT
+     bool loaddefault
+-    bool convertencoding
+   CODE:
+     wxString shorts_tmp, locale_tmp;
+     
+@@ -118,7 +117,7 @@ newLong( name, shorts = NULL, locale = N
+ 
+     RETVAL = new wxLocale( name, shorts,
+         ( locale && wxStrlen( locale ) ) ? locale : NULL,
+-        loaddefault, convertencoding );
++        loaddefault );
+   OUTPUT:
+     RETVAL
+ 
+@@ -245,7 +244,7 @@ FindLanguageInfo( name )
+     	wxPli_object_set_deleteable( aTHX_ ST(0), false );
+ 
+ bool
+-wxLocale::Init( language, flags = wxLOCALE_LOAD_DEFAULT|wxLOCALE_CONV_ENCODING )
++wxLocale::Init( language, flags = wxLOCALE_LOAD_DEFAULT )
+     int language
+     int flags
+ 
+--- a/ext/html/XS/HtmlDCRenderer.xs
++++ b/ext/html/XS/HtmlDCRenderer.xs
+@@ -66,13 +66,11 @@ wxHtmlDCRenderer::SetFonts( normal_face,
+ 
+ #if WXPERL_W_VERSION_GE( 2, 7, 0 )
+ 
+-int 
+-wxHtmlDCRenderer::Render(x, y, pagebreaks, from = 0, dont_render = 0, to = INT_MAX)
++void
++wxHtmlDCRenderer::Render(x, y, from = 0, to = INT_MAX)
+     int x
+     int y
+-    wxArrayInt pagebreaks
+     int from
+-    int dont_render
+     int to
+     
+ #else
+--- a/ext/stc/XS/StyledTextCtrl.xsp
++++ b/ext/stc/XS/StyledTextCtrl.xsp
+@@ -1599,8 +1599,6 @@ wxStyledTextCtrl::AppendTextRaw( text, l
+     void SetFirstVisibleLine(int lineDisplay);
+     void CopyAllowLine(); 
+  	const char* GetCharacterPointer(); 
+- 	void SetKeysUnicode(bool keysUnicode); 
+- 	bool GetKeysUnicode() const; 
+  	void IndicatorSetAlpha(int indicator, int alpha); 
+  	int IndicatorGetAlpha(int indicator) const; 
+  	void SetExtraAscent(int extraAscent); 
+--- a/ext/stc/cpp/st_constants.cpp
++++ b/ext/stc/cpp/st_constants.cpp
+@@ -29,7 +29,7 @@ double stc_constant( const char* name, i
+     switch( fl )
+     {
+     case '4':
+-#if WXPERL_W_VERSION_GE( 2, 9, 0 )
++#if WXPERL_W_VERSION_GE( 2, 9, 0 ) && WXPERL_W_VERSION_LE( 3, 1, 0)
+         r( wxSTC_4GL_BLOCK );
+         r( wxSTC_4GL_BLOCK_ );
+         r( wxSTC_4GL_CHARACTER );
+@@ -309,7 +309,6 @@ double stc_constant( const char* name, i
+         r( wxSTC_COFFEESCRIPT_GLOBALCLASS );
+         r( wxSTC_COFFEESCRIPT_STRINGRAW );
+         r( wxSTC_COFFEESCRIPT_TRIPLEVERBATIM );
+-        r( wxSTC_COFFEESCRIPT_HASHQUOTEDSTRING );
+         r( wxSTC_COFFEESCRIPT_COMMENTBLOCK );
+         r( wxSTC_COFFEESCRIPT_VERBOSE_REGEX );
+         r( wxSTC_COFFEESCRIPT_VERBOSE_REGEX_COMMENT );
+--- a/ext/dataview/XS/DataViewEvent.xsp
++++ b/ext/dataview/XS/DataViewEvent.xsp
+@@ -17,8 +17,6 @@
+ %module{Wx};
+ 
+ %name{Wx::DataViewEvent} class wxDataViewEvent {
+-    wxDataViewEvent( wxEventType type, wxWindowID id );
+-
+     wxDataViewItem& GetItem() const;
+     void SetItem( const wxDataViewItem& item );
+ 
+--- a/Event.xs
++++ b/Event.xs
+@@ -791,12 +791,6 @@ wxNotifyEvent::Veto()
+ void
+ wxNotifyEvent::Allow()
+ 
+-MODULE=Wx_Evt PACKAGE=Wx::PaintEvent
+-
+-wxPaintEvent*
+-wxPaintEvent::new( id = 0 )
+-    wxWindowID id
+-
+ MODULE=Wx_Evt PACKAGE=Wx::SizeEvent
+ 
+ wxSizeEvent*
+--- a/ext/docview/XS/DocManager.xs
++++ b/ext/docview/XS/DocManager.xs
+@@ -14,7 +14,7 @@
+ MODULE=Wx PACKAGE=Wx::DocManager
+ 
+ wxDocManager*
+-wxDocManager::new( flags = wxDEFAULT_DOCMAN_FLAGS, initialize = true )
++wxDocManager::new( flags = 0, initialize = true )
+     long flags
+     bool initialize
+   CODE:
+@@ -454,4 +454,4 @@ wxDocManager::ActivateView( view, activa
+     bool activate
+     bool deleting
+ 
+-#endif
+\ No newline at end of file
++#endif
+--- a/ext/docview/cpp/docview.h
++++ b/ext/docview/cpp/docview.h
+@@ -644,7 +644,7 @@ class wxPliDocManager : public wxDocMana
+     WXPLI_DECLARE_DYNAMIC_CLASS( wxPliDocManager );
+     WXPLI_DECLARE_V_CBACK();
+ public:
+-    wxPliDocManager(  const char* package, long flags = wxDEFAULT_DOCMAN_FLAGS,
++    wxPliDocManager(  const char* package, long flags = 0,
+                      bool initialize = true)
+        : wxDocManager(flags, initialize),
+          m_callback( "Wx::DocManager" )
+--- a/ext/docview/cpp/dv_constants.cpp
++++ b/ext/docview/cpp/dv_constants.cpp
+@@ -30,9 +30,6 @@ double docview_constant( const char* nam
+     {
+       case 'D':
+          r( wxDEFAULT_TEMPLATE_FLAGS );
+-         r( wxDEFAULT_DOCMAN_FLAGS );
+-         r( wxDOC_SDI );
+-         r( wxDOC_MDI );
+          r( wxDOC_NEW );
+          r( wxDOC_SILENT );
+          break;
+--- a/XS/PropertySheetDialog.xsp
++++ b/XS/PropertySheetDialog.xsp
+@@ -49,7 +49,7 @@
+     void SetBookCtrl( wxBookCtrlBase* book );
+     wxBookCtrlBase* GetBookCtrl() const;
+ 
+-    void SetInnerSize( wxSizer* sizer );
++    void SetInnerSizer( wxSizer* sizer );
+     wxSizer* GetInnerSizer() const;
+ 
+ #if WXPERL_W_VERSION_GE( 2, 7, 2 )
+--- a/XS/SingleChoiceDialog.xs
++++ b/XS/SingleChoiceDialog.xs
+@@ -56,21 +56,6 @@ wxSingleChoiceDialog::new( parent, messa
+ int
+ wxSingleChoiceDialog::GetSelection()
+ 
+-SV*
+-wxSingleChoiceDialog::GetSelectionClientData()
+-  PREINIT:
+-    char* t;
+-  CODE:
+-    t = THIS->GetSelectionClientData();
+-    RETVAL = &PL_sv_undef;
+-    if( t )
+-    {
+-        RETVAL = (SV*)t;
+-    }
+-    SvREFCNT_inc( RETVAL );
+-  OUTPUT:
+-    RETVAL
+-
+ wxString
+ wxSingleChoiceDialog::GetStringSelection()
+ 
+--- a/cpp/singlechoicedialog.h
++++ b/cpp/singlechoicedialog.h
+@@ -30,7 +30,7 @@ inline wxPliSingleChoiceDialog::wxPliSin
+       int n, const wxString* choices, SV** clientdata, long style,
+       const wxPoint& pos )
+     :wxSingleChoiceDialog( parent, message, caption, n, choices,
+-                           (char**)clientdata, style, pos ),
++                           (void**)clientdata, style, pos ),
+     m_data(0)
+ {
+     dTHX;
+--- a/XS/GraphicsRenderer.xsp
++++ b/XS/GraphicsRenderer.xsp
+@@ -134,7 +134,7 @@ CreateContext( ... )
+     const wxGraphicsMatrix& CreateMatrix( wxDouble a=1.0, wxDouble b=0.0,
+                                           wxDouble c=0.0, wxDouble d=1.0,
+                                           wxDouble tx=0.0, wxDouble ty=0.0 );
+-    const wxGraphicsPen& CreatePen( const wxPen& pen );
++##    const wxGraphicsPen& CreatePen( const wxGraphicsPenInfo& info );
+     const wxGraphicsBrush& CreateBrush( const wxBrush& brush );
+ 
+ #if WXPERL_W_VERSION_LT( 2, 9, 1 )
+--- a/ext/propgrid/PropertyGrid.xs
++++ b/ext/propgrid/PropertyGrid.xs
+@@ -88,12 +88,6 @@ _get_wxPG_ATTR_HINT()
+   OUTPUT: RETVAL
+   
+ wxString
+-_get_wxPG_ATTR_INLINE_HELP()
+-  CODE:
+-    RETVAL = wxPG_ATTR_INLINE_HELP;
+-  OUTPUT: RETVAL
+-
+-wxString
+ _get_wxPG_ATTR_DEFAULT_VALUE()
+   CODE:
+     RETVAL = wxPG_ATTR_DEFAULT_VALUE;
+--- a/ext/propgrid/XS/PGCell.xsp
++++ b/ext/propgrid/XS/PGCell.xsp
+@@ -59,7 +59,7 @@ public:
+     void SetBgCol( const wxColour& col );
+ 
+     const wxString& GetText() const;
+-    const wxBitmap& GetBitmap() const;
++    const wxBitmapBundle& GetBitmap() const;
+     const wxColour& GetFgCol() const;
+     
+     const wxFont& GetFont() const;
+--- a/ext/propgrid/XS/PGCellRenderer.xsp
++++ b/ext/propgrid/XS/PGCellRenderer.xsp
+@@ -59,6 +59,7 @@ public:
+ 
+     int PreDrawCell( wxDC& dc,
+                      const wxRect& rect,
++                     const wxPropertyGrid* propGrid,
+                      const wxPGCell& cell,
+                      int flags ) const;
+ 
+--- a/ext/propgrid/XS/PGEditor.xsp
++++ b/ext/propgrid/XS/PGEditor.xsp
+@@ -28,9 +28,7 @@ wxPGWindowList::CLONE()
+ %}
+ 
+ public:
+-    %name{newDefault} wxPGWindowList() %Overload;
+-    %name{newOneWindow} wxPGWindowList( wxWindow* a ) %Overload;
+-    %name{newTwoWindows} wxPGWindowList(  wxWindow* a, wxWindow* b ) %Overload;
++    wxPGWindowList(  wxWindow* a, wxWindow* b = NULL);
+ 
+     ~wxPGWindowList()
+         %code%{  wxPli_thread_sv_unregister( aTHX_ "Wx::PGWindowList", THIS, ST(0) );
+--- a/ext/propgrid/XS/PGProperty.xsp
++++ b/ext/propgrid/XS/PGProperty.xsp
+@@ -330,7 +330,28 @@ public:
+     
+ };
+ 
+-%name{Wx::IntProperty} class wxIntProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::NumericProperty} class wxNumericProperty : public %name{Wx::PGProperty} wxPGProperty
++{
++public:
++    /* virtual ~wxNumericProperty(); */
++
++    virtual bool DoSetAttribute(const wxString& name, wxVariant& value);
++
++    virtual wxVariant AddSpinStepValue(long stepScale) const = 0;
++
++    bool UseSpinMotion() const;
++
++protected:
++    wxNumericProperty(const wxString& label, const wxString& name);
++
++    wxVariant m_minVal;
++    wxVariant m_maxVal;
++    bool      m_spinMotion;
++    wxVariant m_spinStep;
++    bool      m_spinWrap;
++};
++
++%name{Wx::IntProperty} class wxIntProperty : public %name{Wx::NumericProperty} wxNumericProperty
+ {
+     
+ public:
+@@ -363,7 +384,7 @@ public:
+ };
+ 
+ 
+-%name{Wx::UIntProperty} class wxUIntProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::UIntProperty} class wxUIntProperty : public %name{Wx::NumericProperty} wxNumericProperty
+ {
+ 
+ public:
+@@ -404,7 +425,7 @@ public:
+     /************** End wxPerl Methods ***********************************************/    
+ };
+ 
+-%name{Wx::FloatProperty} class wxFloatProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::FloatProperty} class wxFloatProperty : public %name{Wx::NumericProperty} wxNumericProperty
+ {
+ 
+ public:
+@@ -664,14 +685,24 @@ protected:
+ };
+ 
+ 
+-%name{Wx::PGFileDialogAdapter} class  wxPGFileDialogAdapter : public %name{Wx::PGEditorDialogAdapter} wxPGEditorDialogAdapter
++%name{Wx::EditorDialogProperty} class wxEditorDialogProperty : public %name{Wx::PGProperty} wxPGProperty
+ {
+ public:
+-    virtual bool DoShowDialog( wxPropertyGrid* propGrid,
+-                               wxPGProperty* property );
++    /* virtual ~wxEditorDialogProperty(); */
++
++    virtual wxPGEditorDialogAdapter* GetEditorDialog() const;
++    virtual bool DoSetAttribute( const wxString& name, wxVariant& value );
++
++protected:
++    wxEditorDialogProperty(const wxString& label, const wxString& name);
++
++    virtual bool DisplayEditorDialog(wxPropertyGrid* pg, wxVariant& value) = 0;
++
++    wxString  m_dlgTitle;
++    long      m_dlgStyle;
+ };
+ 
+-%name{Wx::FileProperty} class wxFileProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::FileProperty} class wxFileProperty : public %name{Wx::EditorDialogProperty} wxEditorDialogProperty
+ {
+ 
+ public:
+@@ -711,14 +742,7 @@ public:
+ 
+ };
+ 
+-%name{Wx::PGLongStringDialogAdapter} class wxPGLongStringDialogAdapter : public %name{Wx::PGEditorDialogAdapter} wxPGEditorDialogAdapter
+-{
+-public:
+-    virtual bool DoShowDialog( wxPropertyGrid* propGrid,
+-                               wxPGProperty* property );
+-};
+-
+-%name{Wx::LongStringProperty} class wxLongStringProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::LongStringProperty} class wxLongStringProperty : public %name{Wx::EditorDialogProperty} wxEditorDialogProperty
+ {
+ 
+ public:
+@@ -734,15 +758,6 @@ public:
+     virtual bool OnEvent( wxPropertyGrid* propgrid,
+                           wxWindow* primary, wxEvent& event );
+ 
+-    // Shows string editor dialog. Value to be edited should be read from
+-    // value, and if dialog is not cancelled, it should be stored back and true
+-    // should be returned if that was the case.
+-    virtual bool OnButtonClick( wxPropertyGrid* propgrid, wxString& value );
+-
+-    static bool DisplayEditorDialog( wxPGProperty* prop,
+-                                     wxPropertyGrid* propGrid,
+-                                     wxString& value );
+-   
+     /************** Begin wxPerl Methods ***********************************************/
+     
+     wxString GetPlValue( int flags = wxPG_FULL_VALUE )
+@@ -754,7 +769,7 @@ public:
+     /************** End wxPerl Methods ***********************************************/    
+ };
+ 
+-%name{Wx::DirProperty} class wxDirProperty : public %name{Wx::LongStringProperty} wxLongStringProperty
++%name{Wx::DirProperty} class wxDirProperty : public %name{Wx::EditorDialogProperty} wxEditorDialogProperty
+ {
+ 
+ public:
+@@ -765,8 +780,6 @@ public:
+     virtual bool DoSetAttribute( const wxString& name, wxVariant& value );
+     virtual wxValidator* DoGetValidator() const;
+ 
+-    virtual bool OnButtonClick ( wxPropertyGrid* propGrid, wxString& value );
+-    
+     /************** Begin wxPerl Methods ***********************************************/
+     
+     wxString GetPlValue( int flags = wxPG_FULL_VALUE )
+@@ -779,7 +792,7 @@ public:
+ 
+ };
+ 
+-%name{Wx::ArrayStringProperty} class wxArrayStringProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::ArrayStringProperty} class wxArrayStringProperty : public %name{Wx::EditorDialogProperty} wxEditorDialogProperty
+ {
+ 
+ public:
+@@ -1012,7 +1025,7 @@ public:
+     #include "wx/image.h"
+ #endif
+ 
+-%name{Wx::FontProperty} class wxFontProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::FontProperty} class wxFontProperty : public %name{Wx::EditorDialogProperty} wxEditorDialogProperty
+ {
+ 
+ public:
+@@ -1195,7 +1208,7 @@ public:
+ 
+ #if wxUSE_IMAGE
+ 
+-%name{Wx::ImageFileProperty} class wxImageFileProperty : public %name{Wx::FileProperty} wxFileProperty
++%name{Wx::ImageFileProperty} class wxImageFileProperty : public %name{Wx::EditorDialogProperty} wxEditorDialogProperty
+ {
+     
+ public:
+@@ -1227,7 +1240,7 @@ public:
+ 
+ #if wxUSE_CHOICEDLG
+ 
+-%name{Wx::MultiChoiceProperty} class wxMultiChoiceProperty : public %name{Wx::PGProperty} wxPGProperty
++%name{Wx::MultiChoiceProperty} class wxMultiChoiceProperty : public %name{Wx::EditorDialogProperty} wxEditorDialogProperty
+ {
+ 
+ public:
+--- a/ext/propgrid/XS/PropertyGridManager.xsp
++++ b/ext/propgrid/XS/PropertyGridManager.xsp
+@@ -100,8 +100,6 @@ public:
+     /** Synonyme for GetSelectedPage. */
+     wxPGProperty__parsed_nodelete* GetSelection() const;
+ 
+-    wxToolBar* GetToolBar() const;
+-
+     virtual wxPropertyGridPage* InsertPage( int index, const wxString& label,
+                                             const wxBitmap& bmp = wxNullBitmapPtr,
+                                             wxPropertyGridPage* pageObj = NULL ); 
+--- a/ext/propgrid/typemap
++++ b/ext/propgrid/typemap
+@@ -62,6 +62,8 @@ wxPGInDialogValidator *    O_NON_WXOBJEC
+ 
+ wxNumericPropertyValidator *  O_WXOBJECT
+ 
++wxEditorDialogProperty *       O_WXOBJECT_THR
++wxNumericProperty *       O_WXOBJECT_THR
+ wxStringProperty *       O_WXOBJECT_THR
+ wxIntProperty *       O_WXOBJECT_THR
+ wxUIntProperty *       O_WXOBJECT_THR
+@@ -75,9 +77,6 @@ wxLongStringProperty *       O_WXOBJECT_
+ wxDirProperty * O_WXOBJECT_THR
+ wxArrayStringProperty *       O_WXOBJECT_THR
+ 
+-wxPGFileDialogAdapter *  O_NON_WXOBJECT_THR
+-wxPGLongStringDialogAdapter * O_NON_WXOBJECT_THR
+-
+ wxPGArrayEditorDialog *  O_WXEVTHANDLER
+ wxPGArrayStringEditorDialog *  O_WXEVTHANDLER
+ 
+--- a/ext/propgrid/typemap.xsp
++++ b/ext/propgrid/typemap.xsp
+@@ -80,6 +80,8 @@
+ 
+ %typemap{wxNumericPropertyValidator*}{simple};
+ 
++%typemap{wxEditorDialogProperty*}{simple};
++%typemap{wxNumericProperty*}{simple};
+ %typemap{wxIntProperty*}{simple};
+ %typemap{wxUIntProperty*}{simple};
+ %typemap{wxFloatProperty*}{simple};
+@@ -92,9 +94,6 @@
+ %typemap{wxDirProperty*}{simple};
+ %typemap{wxArrayStringProperty*}{simple};
+ 
+-%typemap{wxPGFileDialogAdapter*}{simple};
+-%typemap{wxPGLongStringDialogAdapter*}{simple};
+-
+ %typemap{wxPGArrayEditorDialog*}{simple};
+ %typemap{wxPlPGArrayEditorDialog*}{simple};
+ %typemap{wxPGArrayStringEditorDialog*}{simple};
+--- a/XS/Slider.xs
++++ b/XS/Slider.xs
+@@ -111,11 +111,6 @@ wxSlider::SetRange( minValue, maxValue )
+     int maxValue
+ 
+ void
+-wxSlider::SetTickFreq( n, pos )
+-    int n
+-    int pos
+-
+-void
+ wxSlider::SetLineSize( lineSize )
+     int lineSize
+ 
+--- a/ext/grid/XS/Grid.xs
++++ b/ext/grid/XS/Grid.xs
+@@ -170,9 +170,6 @@ wxGrid::BlockToDeviceRect( topLeft, bott
+   OUTPUT:
+     RETVAL
+ 
+-bool
+-wxGrid::CanDragColSize()
+-
+ #if WXPERL_W_VERSION_GE( 2, 7, 2 )
+ 
+ bool
+@@ -181,9 +178,6 @@ wxGrid::CanDragColMove()
+ #endif
+ 
+ bool
+-wxGrid::CanDragRowSize()
+-
+-bool
+ wxGrid::CanDragGridSize()
+ 
+ bool
+@@ -671,9 +665,6 @@ wxGrid::GetSelectionForeground()
+ wxGridSelectionModes
+ wxGrid::GetSelectionMode()
+ 
+-int
+-wxGrid::GetViewWidth()
+-
+ void
+ wxGrid::HideCellEditControl()
+ 
+--- a/cpp/helpers.cpp
++++ b/cpp/helpers.cpp
+@@ -405,6 +405,25 @@ SV* wxPli_clientdatacontainer_2_sv( pTHX
+     return wxPli_non_object_2_sv( aTHX_ var, cdc, klass );
+ }
+ 
++SV* wxPli_sharedclientdatacontainer_2_sv( pTHX_ SV* var, wxSharedClientDataContainer* scdc, const char* klass )
++{
++    if( scdc == NULL )
++    {
++        sv_setsv( var, &PL_sv_undef );
++        return var;
++    }
++
++    wxPliUserDataCD* clientData = (wxPliUserDataCD*) scdc->GetClientObject();
++
++    if( clientData != NULL )
++    {
++        SvSetSV_nosteal( var, clientData->GetData() );
++        return var;
++    }
++
++    return wxPli_non_object_2_sv( aTHX_ var, scdc, klass );
++}
++
+ SV* wxPli_object_2_scalarsv( pTHX_ SV* var, const wxObject* object )
+ {
+     wxClassInfo *ci = object->GetClassInfo();
+--- a/cpp/helpers.h
++++ b/cpp/helpers.h
+@@ -35,6 +35,7 @@ class WXDLLIMPEXP_FWD_CORE wxInputStream
+ class WXDLLIMPEXP_FWD_CORE wxOutputStream;
+ class WXDLLIMPEXP_FWD_CORE wxEvtHandler;
+ class WXDLLIMPEXP_FWD_CORE wxClientDataContainer;
++class WXDLLIMPEXP_FWD_CORE wxSharedClientDataContainer;
+ class WXDLLIMPEXP_FWD_CORE wxPoint2DDouble;
+ typedef wxInputStream Wx_InputStream;
+ typedef wxOutputStream Wx_OutputStream;
+@@ -236,6 +237,9 @@ SV* FUNCPTR( wxPli_object_2_sv )( pTHX_
+ SV* FUNCPTR( wxPli_clientdatacontainer_2_sv )( pTHX_ SV* var,
+                                                wxClientDataContainer* cdc,
+                                                const char* klass );
++SV* FUNCPTR( wxPli_sharedclientdatacontainer_2_sv )( pTHX_ SV* var,
++                                                     wxSharedClientDataContainer* scdc,
++                                                     const char* klass );
+ SV* FUNCPTR( wxPli_evthandler_2_sv )( pTHX_ SV* var, wxEvtHandler* evth );
+ SV* FUNCPTR( wxPli_non_object_2_sv )( pTHX_ SV* var, const void* data,
+                                       const char* package );
+@@ -531,6 +535,9 @@ struct wxPliHelpers
+     wxPliSelfRef* ( * m_wxPli_get_selfref )( pTHX_ wxObject*, bool);
+     SV* ( * m_wxPli_object_2_scalarsv )( pTHX_ SV* var, const wxObject* object );
+     SV* ( * m_wxPli_namedobject_2_sv )( pTHX_ SV* var, const wxObject* object, const char* package );
++    SV* (* m_wxPli_sharedclientdatacontainer_2_sv )( pTHX_ SV* var,
++                                                     wxSharedClientDataContainer* scdc,
++                                                     const char* klass );
+ };
+ 
+ #if wxPERL_USE_THREADS
+@@ -576,7 +583,8 @@ wxPliHelpers name = { &wxPli_sv_2_object
+  &wxPli_objlist_push, &wxPliOutputStream_ctor, &wxPli_stringarray_push, \
+  &wxPli_overload_error, &wxPli_sv_2_wxvariant, \
+  &wxPli_create_virtual_evthandler, &wxPli_get_selfref, &wxPli_object_2_scalarsv, \
+- &wxPli_namedobject_2_sv \
++ &wxPli_namedobject_2_sv, \
++ &wxPli_sharedclientdatacontainer_2_sv \
+  }
+ 
+ #if NEEDS_PLI_HELPERS_STRUCT()
+@@ -627,6 +635,7 @@ wxPliHelpers name = { &wxPli_sv_2_object
+   wxPli_get_selfref = name->m_wxPli_get_selfref; \
+   wxPli_object_2_scalarsv = name->m_wxPli_object_2_scalarsv; \
+   wxPli_namedobject_2_sv = name->m_wxPli_namedobject_2_sv; \
++  wxPli_sharedclientdatacontainer_2_sv = name->m_wxPli_sharedclientdatacontainer_2_sv; \
+   WXPLI_INIT_CLASSINFO();
+ 
+ #else
+--- a/ext/grid/typemap
++++ b/ext/grid/typemap
+@@ -26,7 +26,7 @@ wxGridCellCoords *      O_NON_WXOBJECT_T
+ wxGridCellAttr *        O_NON_WXOBJECT_THR_SV
+ wxGridCellAttr::wxAttrKind      T_ENUM
+ 
+-wxGridCellRenderer *            O_WXCLIENTDATACONTAINER_THR_SV
++wxGridCellRenderer *            O_WXSHAREDCLIENTDATACONTAINER_THR_SV
+ wxGridCellStringRenderer *      O_NON_WXOBJECT_THR_SV
+ wxGridCellNumberRenderer *      O_NON_WXOBJECT_THR_SV
+ wxGridCellFloatRenderer *       O_NON_WXOBJECT_THR_SV
+@@ -34,9 +34,9 @@ wxGridCellBoolRenderer *        O_NON_WX
+ wxGridCellAutoWrapStringRenderer * O_NON_WXOBJECT_THR_SV
+ wxGridCellEnumRenderer *	O_NON_WXOBJECT_THR_SV
+ wxGridCellDateTimeRenderer *	O_NON_WXOBJECT_THR_SV
+-wxPlGridCellRenderer *          O_WXCLIENTDATACONTAINER_THR_SV
++wxPlGridCellRenderer *          O_WXSHAREDCLIENTDATACONTAINER_THR_SV
+ 
+-wxGridCellEditor *              O_WXCLIENTDATACONTAINER_THR_SV
++wxGridCellEditor *              O_WXSHAREDCLIENTDATACONTAINER_THR_SV
+ wxGridCellTextEditor *          O_NON_WXOBJECT_THR_SV
+ wxGridCellNumberEditor *        O_NON_WXOBJECT_THR_SV
+ wxGridCellFloatEditor *         O_NON_WXOBJECT_THR_SV
+@@ -44,7 +44,7 @@ wxGridCellBoolEditor *          O_NON_WX
+ wxGridCellChoiceEditor *        O_NON_WXOBJECT_THR_SV
+ wxGridCellAutoWrapStringEditor * O_NON_WXOBJECT_THR_SV
+ wxGridCellEnumEditor *		O_NON_WXOBJECT_THR_SV
+-wxPlGridCellEditor *            O_WXCLIENTDATACONTAINER_THR_SV
++wxPlGridCellEditor *            O_WXSHAREDCLIENTDATACONTAINER_THR_SV
+ 
+ wxPlGridTable*                  O_WXOBJECT
+ wxGridTableBase*                O_WXOBJECT
+--- a/typemap
++++ b/typemap
+@@ -123,6 +123,7 @@ wxObject *              O_WXOBJECT
+ wxApp *                 O_WXOBJECT
+ wxStandardPaths *       O_NON_WXOBJECT
+ wxWindow *              O_WXOBJECT
++const wxWindow *        O_WXOBJECT
+ wxPlWindow *            O_WXOBJECT
+ wxPlControl *           O_WXOBJECT
+ wxFrame *               O_WXOBJECT
+@@ -377,6 +378,7 @@ wxIcon *                O_WXOBJECT_THR
+ wxIconBundle *          O_NON_WXOBJECT
+ wxIconLocation *        O_NON_WXOBJECT
+ wxBitmap *              O_WXOBJECT_THR
++wxBitmapBundle *        O_NON_WXOBJECT_THR
+ wxCursor *              O_WXOBJECT_THR
+ const wxCursor *        O_WXOBJECT_THR
+ wxToolTip *             O_WXOBJECT
+@@ -533,6 +535,13 @@ O_WXCLIENTDATACONTAINER_THR_SV
+     wxPli_clientdatacontainer_2_sv( aTHX_ $arg, $var, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
+     wxPli_thread_sv_register( aTHX_ ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt}, SvRV( $arg ), $arg );
+ 
++O_WXSHAREDCLIENTDATACONTAINER
++    wxPli_sharedclientdatacontainer_2_sv( aTHX_ $arg, $var, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
++
++O_WXSHAREDCLIENTDATACONTAINER_THR_SV
++    wxPli_sharedclientdatacontainer_2_sv( aTHX_ $arg, $var, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
++    wxPli_thread_sv_register( aTHX_ ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt}, SvRV( $arg ), $arg );
++
+ O_NON_WXOBJECT
+     wxPli_non_object_2_sv( aTHX_ $arg, $var, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
+ 
+@@ -587,6 +596,12 @@ O_WXCLIENTDATACONTAINER
+ O_WXCLIENTDATACONTAINER_THR_SV
+     $var = (${(my $t=$type)=~s/^Wx_/wx/;\$t}) wxPli_sv_2_object( aTHX_ $arg, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
+ 
++O_WXSHAREDCLIENTDATACONTAINER
++    $var = (${(my $t=$type)=~s/^Wx_/wx/;\$t}) wxPli_sv_2_object( aTHX_ $arg, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
++
++O_WXSHAREDCLIENTDATACONTAINER_THR_SV
++    $var = (${(my $t=$type)=~s/^Wx_/wx/;\$t}) wxPli_sv_2_object( aTHX_ $arg, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
++
+ O_NON_WXOBJECT
+     $var = (${(my $t=$type)=~s/^Wx_/wx/;\$t}) wxPli_sv_2_object( aTHX_ $arg, ${(my $ntt=$ntype)=~s/^(?:const\s+)?(?:Wx_|wx)(.*?)(?:Ptr)?$/$1/g;$ntt=qq{\"Wx::$ntt\"};\$ntt} );
+ 
+--- a/typemap.tmpl
++++ b/typemap.tmpl
+@@ -123,6 +123,7 @@ wxObject *              O_WXOBJECT
+ wxApp *                 O_WXOBJECT
+ wxStandardPaths *       O_NON_WXOBJECT
+ wxWindow *              O_WXOBJECT
++const wxWindow *        O_WXOBJECT
+ wxPlWindow *            O_WXOBJECT
+ wxPlControl *           O_WXOBJECT
+ wxFrame *               O_WXOBJECT
+@@ -377,6 +378,7 @@ wxIcon *                O_WXOBJECT_THR
+ wxIconBundle *          O_NON_WXOBJECT
+ wxIconLocation *        O_NON_WXOBJECT
+ wxBitmap *              O_WXOBJECT_THR
++wxBitmapBundle *        O_NON_WXOBJECT_THR
+ wxCursor *              O_WXOBJECT_THR
+ const wxCursor *        O_WXOBJECT_THR
+ wxToolTip *             O_WXOBJECT
+@@ -533,6 +535,13 @@ O_WXCLIENTDATACONTAINER_THR_SV
+     wxPli_clientdatacontainer_2_sv( aTHX_ $arg, $var, PERL_CLASS );
+     wxPli_thread_sv_register( aTHX_ PERL_CLASS, SvRV( $arg ), $arg );
+ 
++O_WXSHAREDCLIENTDATACONTAINER
++    wxPli_sharedclientdatacontainer_2_sv( aTHX_ $arg, $var, PERL_CLASS );
++
++O_WXSHAREDCLIENTDATACONTAINER_THR_SV
++    wxPli_sharedclientdatacontainer_2_sv( aTHX_ $arg, $var, PERL_CLASS );
++    wxPli_thread_sv_register( aTHX_ PERL_CLASS, SvRV( $arg ), $arg );
++
+ O_NON_WXOBJECT
+     wxPli_non_object_2_sv( aTHX_ $arg, $var, PERL_CLASS );
+ 
+@@ -587,6 +596,12 @@ O_WXCLIENTDATACONTAINER
+ O_WXCLIENTDATACONTAINER_THR_SV
+     $var = (CPP_CLASS) wxPli_sv_2_object( aTHX_ $arg, PERL_CLASS );
+ 
++O_WXSHAREDCLIENTDATACONTAINER
++    $var = (CPP_CLASS) wxPli_sv_2_object( aTHX_ $arg, PERL_CLASS );
++
++O_WXSHAREDCLIENTDATACONTAINER_THR_SV
++    $var = (CPP_CLASS) wxPli_sv_2_object( aTHX_ $arg, PERL_CLASS );
++
+ O_NON_WXOBJECT
+     $var = (CPP_CLASS) wxPli_sv_2_object( aTHX_ $arg, PERL_CLASS );
+ 
+--- /dev/null
++++ b/XS/TextEntry.xsp
+@@ -0,0 +1,89 @@
++#############################################################################
++## Name:        viface/TextEntry.xsp
++## Purpose:     XS++ for wxTextEntry
++## Author:      Scott Talbert
++## Modified by:
++## Created:     09/11/2022
++## RCS-ID:      $Id:$
++## Copyright:   (c) 2022 Scott Talbert
++## Licence:     This program is free software; you can redistribute it and/or
++##              modify it under the same terms as Perl itself
++#############################################################################
++
++%file{xspp/TextEntry.h};
++
++%module{Wx};
++
++#if WXPERL_W_VERSION_GE( 2, 9, 0 )
++
++%typemap{wxTextPos}{parsed}{
++    %cpp_type{%wxTextPos%};
++};
++%typemap{wxTextEntry*}{simple};
++
++%name{Wx::TextEntry} class wxTextEntry
++{
++	virtual void AppendText(const wxString& text);
++	bool AutoComplete(const wxArrayString& choices);
++##	bool AutoComplete(wxTextCompleter *completer);
++	bool AutoCompleteFileNames();
++	bool AutoCompleteDirectories();
++	virtual bool CanCopy() const;
++	virtual bool CanCut() const;
++	virtual bool CanPaste() const;
++	virtual bool CanRedo() const;
++	virtual bool CanUndo() const;
++	virtual void ChangeValue(const wxString& value);
++	virtual void Clear();
++	virtual void Copy();
++	virtual void Cut();
++	void ForceUpper();
++	virtual long GetInsertionPoint() const;
++	virtual wxTextPos GetLastPosition() const;
++	virtual wxString GetRange(long from, long to) const;
++	##virtual void GetSelection(long* from, long* to) const;
++	virtual wxString GetStringSelection() const;
++	virtual wxString GetValue() const;
++	virtual bool IsEditable() const;
++	virtual bool IsEmpty() const;
++	virtual void Paste();
++	virtual void Redo();
++	virtual void Remove(long from, long to);
++	virtual void Replace(long from, long to, const wxString& value);
++	virtual void SetEditable(bool editable);
++	virtual void SetInsertionPoint(long pos);
++	virtual void SetInsertionPointEnd();
++	virtual void SetMaxLength(unsigned long len);
++	virtual void SetSelection(long from, long to);
++	virtual void SelectAll();
++	virtual void SelectNone();
++	virtual bool SetHint(const wxString& hint);
++	virtual wxString GetHint() const;
++	bool SetMargins(const wxPoint& pt);
++##	bool SetMargins(wxCoord left, wxCoord top = -1);
++	wxPoint GetMargins() const;
++	virtual void SetValue(const wxString& value);
++	virtual void Undo();
++	virtual void WriteText(const wxString& text);
++};
++
++%{
++
++void
++wxTextEntry::GetSelection()
++  PREINIT:
++    long from;
++    long to;
++  PPCODE:
++    THIS->GetSelection( &from, &to );
++    EXTEND( SP, 2 );
++    PUSHs( sv_2mortal( newSViv( from ) ) );
++    PUSHs( sv_2mortal( newSViv( to ) ) );
++
++%}
++
++#endif
++
++%file{-};
++
++
+--- a/MANIFEST
++++ b/MANIFEST
+@@ -479,6 +479,7 @@ XS/AnimationCtrl.xsp
+ XS/App.xs
+ XS/ArtProvider.xsp
+ XS/Bitmap.xs
++XS/BitmapBundle.xsp
+ XS/BitmapComboBox.xsp
+ XS/BookCtrl.xsp
+ XS/Brush.xsp
+@@ -581,6 +582,7 @@ XS/TaskBarIcon.xs
+ XS/TextAttr.xsp
+ XS/TextCtrl.xsp
+ XS/TextCtrlIface.xsp
++XS/TextEntry.xsp
+ XS/TextEntryDialog.xs
+ XS/Timer.xs
+ XS/ToggleButton.xs
+--- a/XS/SearchCtrl.xsp
++++ b/XS/SearchCtrl.xsp
+@@ -74,8 +74,8 @@ new( ... )
+ 
+ #define WXPERL_IN_SEARCHCTRL
+ 
+-INCLUDE_COMMAND: $^X -MExtUtils::XSpp::Cmd -e xspp -- -t typemap.xsp XS/TextCtrlIface.xsp
+-INCLUDE_COMMAND: $^X -pe "s/TextCtrlIface/SearchCtrl/g" xspp/TextCtrlIface.h
++INCLUDE_COMMAND: $^X -MExtUtils::XSpp::Cmd -e xspp -- -t typemap.xsp XS/TextEntry.xsp
++INCLUDE_COMMAND: $^X -pe "s/TextEntry/SearchCtrl/g" xspp/TextEntry.h
+ 
+ #undef WXPERL_IN_SEARCHCTRL
+ 
+--- a/Wx.xs
++++ b/Wx.xs
+@@ -623,6 +623,7 @@ MODULE=Wx PACKAGE=Wx
+ #!irrelevant class wxScopedPtr
+ #!irrelevant class wxScopedTiedPtr
+ #!irrelevant class wxSemaphore
++#!irrelevant class wxSharedDataContainer
+ #!irrelevant class wxString
+ #!irrelevant class wxStringBuffer
+ #!irrelevant class wxStringBufferLength
+--- a/interface/wx/headercol.h
++++ b/interface/wx/headercol.h
+@@ -218,7 +218,7 @@ public:
+         Notice that the bitmaps displayed in different columns of the same
+         control must all be of the same size.
+      */
+-    virtual void SetBitmap(const wxBitmap& bitmap) = 0 %Virtual{pure};
++    virtual void SetBitmap(const wxBitmapBundle& bitmap) = 0 %Virtual{pure};
+ 
+     /**
+         Set the column width.
+--- a/GDI.xs
++++ b/GDI.xs
+@@ -42,6 +42,7 @@ INCLUDE: XS/ColourDatabase.xs
+ INCLUDE: XS/Font.xs
+ INCLUDE_COMMAND: $^X -I./ -MExtUtils::XSpp::Cmd -e xspp -- -t typemap.xsp XS/ImageList.xsp
+ INCLUDE: XS/Bitmap.xs
++INCLUDE_COMMAND: $^X -I./ -MExtUtils::XSpp::Cmd -e xspp -- -t typemap.xsp XS/BitmapBundle.xsp
+ INCLUDE: XS/Icon.xs
+ INCLUDE: XS/Cursor.xs
+ INCLUDE_COMMAND: $^X -I./ -MExtUtils::XSpp::Cmd -e xspp -- -t typemap.xsp XS/DC.xsp
+--- a/typemap.xsp
++++ b/typemap.xsp
+@@ -127,6 +127,8 @@
+ %typemap{wxArtProvider&}{reference};
+ %typemap{wxBitmap}{reference};
+ %typemap{const wxBitmap&}{reference};
++%typemap{wxBitmapBundle}{reference};
++%typemap{const wxBitmapBundle&}{reference};
+ %typemap{wxCursor}{reference};
+ %typemap{const wxCursor&}{reference};
+ %typemap{wxIcon}{reference};
+@@ -170,6 +172,7 @@
+ %typemap{wxSplitterWindow*}{simple};
+ %typemap{wxSplitterEvent*}{simple};
+ %typemap{wxWindow*}{simple};
++%typemap{const wxWindow*}{simple};
+ %typemap{wxListView*}{simple};
+ %typemap{wxSizer*}{simple};
+ %typemap{wxIconBundle*}{simple};
+@@ -195,6 +198,7 @@
+ %typemap{wxImageList*}{simple};
+ %typemap{wxImage*}{simple};
+ %typemap{wxImage&}{reference};
++%typemap{const wxImage&}{reference};
+ 
+ %typemap{wxPliInputStream}{simple};
+ %typemap{wxPliOutputStream}{simple};
+--- a/build/Wx/XSP/Virtual.pm
++++ b/build/Wx/XSP/Virtual.pm
+@@ -180,6 +180,14 @@ sub handle_method_tag {
+     { name => 'wxBitmap&', merge          => 'wxBitmap',},
+     { name => 'const wxBitmap&', merge    => 'wxBitmap',},
+     
++    { name => 'wxBitmapBundle',  convert_return => '*(wxBitmapBundle*)wxPli_sv_2_object( aTHX_ ret, "Wx::BitmapBundle" )',
++                           default_value  => 'wxBitmapBundle()',
++                           type_char      => 'O',
++                           arguments      => '&%s',
++                           },
++    { name => 'wxBitmapBundle&', merge    => 'wxBitmapBundle',},
++    { name => 'const wxBitmapBundle&', merge    => 'wxBitmapBundle',},
++
+     { name => 'wxPoint',   convert_return => 'wxPli_sv_2_wxpoint( aTHX_ ret )',
+                            default_value  => 'wxPoint()',
+                            type_char      => 'o',
+--- /dev/null
++++ b/XS/BitmapBundle.xsp
+@@ -0,0 +1,76 @@
++#############################################################################
++## Name:        XS/BitmapBundle.xsp
++## Purpose:     XS for Wx::BitmapBundle
++## Author:      Scott Talbert
++## Modified by:
++## Created:     12/12/2022
++## Copyright:   (c) 2022 Scott Talbert
++## Licence:     This program is free software; you can redistribute it and/or
++##              modify it under the same terms as Perl itself
++#############################################################################
++
++%{
++#include <wx/bmpbndl.h>
++%}
++
++%module{Wx};
++
++%name{Wx::BitmapBundle} class wxBitmapBundle
++{
++    %name{newNull} wxBitmapBundle();
++    %name{newBitmap} wxBitmapBundle(const wxBitmap& bitmap);
++    %name{newIcon} wxBitmapBundle(const wxIcon& icon);
++    %name{newImage} wxBitmapBundle(const wxImage& image);
++##    wxBitmapBundle(const char* const* xpm);
++##    wxBitmapBundle(const wxBitmapBundle& other);
++##    wxBitmapBundle& operator=(const wxBitmapBundle& other);
++##    static wxBitmapBundle FromBitmaps(const wxVector<wxBitmap>& bitmaps);
++    static wxBitmapBundle FromBitmaps(const wxBitmap& bitmap1,
++                                      const wxBitmap& bitmap2);
++    static wxBitmapBundle FromBitmap(const wxBitmap& bitmap);
++    static wxBitmapBundle FromIconBundle(const wxIconBundle& iconBundle);
++    static wxBitmapBundle FromImage(const wxImage& image);
++##    static wxBitmapBundle FromImpl(wxBitmapBundleImpl* impl);
++    static wxBitmapBundle FromResources(const wxString& name);
++    %name{FromFiles3} wxBitmapBundle FromFiles(const wxString& path, const wxString& filename, const wxString& extension = "png");
++    %name{FromFiles1} wxBitmapBundle FromFiles(const wxString& fullpathname);
++##    static wxBitmapBundle FromSVG(char* data, const wxSize& sizeDef);
++    static wxBitmapBundle FromSVG(const char* data, const wxSize& sizeDef);
++    static wxBitmapBundle FromSVGFile(const wxString& path, const wxSize& sizeDef);
++    static wxBitmapBundle FromSVGResource(const wxString& name, const wxSize& sizeDef);
++    void Clear();
++    bool IsOk() const;
++    wxSize GetDefaultSize() const;
++    wxSize GetPreferredBitmapSizeAtScale(double scale) const;
++    wxSize GetPreferredBitmapSizeFor(const wxWindow* window) const;
++    wxSize GetPreferredLogicalSizeFor(const wxWindow* window) const;
++    wxBitmap GetBitmap(const wxSize& size) const;
++    wxBitmap GetBitmapFor(const wxWindow* window) const;
++    wxIcon GetIcon(const wxSize& size) const;
++    wxIcon GetIconFor(const wxWindow* window) const;
++    bool IsSameAs(const wxBitmapBundle& other) const;
++};
++
++%{
++
++MODULE=Wx PACKAGE=Wx::BitmapBundle
++
++void
++new( ... )
++  PPCODE:
++    BEGIN_OVERLOAD()
++        MATCH_VOIDM_REDISP( newNull )
++        MATCH_REDISP( wxPliOvl_wbmp, newBitmap )
++	MATCH_REDISP( wxPliOvl_wico, newIcon )
++        MATCH_REDISP( wxPliOvl_wimg, newImage )
++    END_OVERLOAD( "Wx::BitmapBundle::new" )
++
++void
++wxBitmapBundle::FromFiles( ... )
++  PPCODE:
++    BEGIN_OVERLOAD()
++        MATCH_REDISP( wxPliOvl_s_s_s, FromFiles3 )
++        MATCH_REDISP( wxPliOvl_s, FromFiles1 )
++    END_OVERLOAD( Wx::BitmapBundle::FromFiles )
++
++%}
+\ No newline at end of file
+--- a/Window.xs
++++ b/Window.xs
+@@ -736,10 +736,6 @@ void
+ wxWindow::Lower()
+ 
+ void
+-wxWindow::MakeModal( flag )
+-    bool flag
+-
+-void
+ wxWindow::Move( ... )
+   PPCODE:
+     BEGIN_OVERLOAD()
+--- a/XS/Validators.xs
++++ b/XS/Validators.xs
+@@ -19,10 +19,6 @@ wxWindow*
+ wxValidator::GetWindow()
+ 
+ void
+-wxValidator::SetBellOnError( doit = true )
+-    bool doit
+-
+-void
+ wxValidator::SetWindow( window )
+     wxWindow* window
+ 
+--- a/ext/propgrid/lib/Wx/PropertyGrid.pm
++++ b/ext/propgrid/lib/Wx/PropertyGrid.pm
+@@ -111,19 +111,19 @@ package Wx::PGSpinCtrlEditor;
+ package Wx::PGInDialogValidator;
+ 
+ package Wx::StringProperty;             @ISA = qw( Wx::PGProperty );
+-package Wx::IntProperty;                @ISA = qw( Wx::PGProperty );
+-package Wx::UIntProperty;               @ISA = qw( Wx::PGProperty );
+-package Wx::FloatProperty;              @ISA = qw( Wx::PGProperty );
++package Wx::IntProperty;                @ISA = qw( Wx::NumericProperty );
++package Wx::UIntProperty;               @ISA = qw( Wx::NumericProperty );
++package Wx::FloatProperty;              @ISA = qw( Wx::NumericProperty );
+ package Wx::BoolProperty;               @ISA = qw( Wx::PGProperty );
+ package Wx::EnumProperty;               @ISA = qw( Wx::PGProperty );
+ package Wx::EditEnumProperty;           @ISA = qw( Wx::EnumProperty );
+ package Wx::FlagsProperty;              @ISA = qw( Wx::PGProperty );
+-package Wx::FileProperty;               @ISA = qw( Wx::PGProperty );
+-package Wx::LongStringProperty;         @ISA = qw( Wx::PGProperty );
+-package Wx::DirProperty ;               @ISA = qw( Wx::LongStringProperty );
+-package Wx::ArrayStringProperty;        @ISA = qw( Wx::PGProperty );
+-package Wx::MultiChoiceProperty;        @ISA = qw( Wx::PGProperty );
+-package Wx::FontProperty;               @ISA = qw( Wx::PGProperty );
++package Wx::FileProperty;               @ISA = qw( Wx::EditorDialogProperty );
++package Wx::LongStringProperty;         @ISA = qw( Wx::EditorDialogProperty );
++package Wx::DirProperty ;               @ISA = qw( Wx::EditorDialogProperty );
++package Wx::ArrayStringProperty;        @ISA = qw( Wx::EditorDialogProperty );
++package Wx::MultiChoiceProperty;        @ISA = qw( Wx::EditorDialogProperty );
++package Wx::FontProperty;               @ISA = qw( Wx::EditorDialogProperty );
+ package Wx::SystemColourProperty;       @ISA = qw( Wx::EnumProperty );
+ package Wx::ColourProperty;             @ISA = qw( Wx::SystemColourProperty );
+ package Wx::CursorProperty;             @ISA = qw( Wx::EnumProperty );
+--- a/ext/ribbon/t/03_threads.t
++++ b/ext/ribbon/t/03_threads.t
+@@ -27,9 +27,9 @@ my $app = Wx::App->new( sub { 1 } );
+ my $frame = Wx::Frame->new(undef, -1, 'Test Frame');
+ my $rcontrol = Wx::RibbonControl->new($frame, -1);
+ my $rgallery = Wx::RibbonGallery->new($frame, -1);
+-my $rpanel = Wx::RibbonPanel->new($frame, -1);
+ my $rbar = Wx::RibbonBar->new($frame, -1);
+ my $rpage = Wx::RibbonPage->new($rbar, -1);
++my $rpanel = Wx::RibbonPanel->new($rpage, -1);
+ my $rbbar = Wx::RibbonButtonBar->new($frame, -1);
+ my $rtbar = Wx::RibbonToolBar->new($frame, -1);
+ 
+--- a/ext/propgrid/t/03_threads.t
++++ b/ext/propgrid/t/03_threads.t
+@@ -184,8 +184,8 @@ my $choiced1 = Wx::PGChoicesData->new;
+ my $choiced2 = Wx::PGChoicesData->new;
+ my $choicee1 = Wx::PGChoiceEntry->new;
+ my $choicee2 = Wx::PGChoiceEntry->new;
+-my $pgwlist1  = Wx::PGWindowList->new;
+-my $pgwlist2  = Wx::PGWindowList->new;
++my $pgwlist1  = Wx::PGWindowList->new( Wx::Window->new( $frame, -1 ) );
++my $pgwlist2  = Wx::PGWindowList->new( Wx::Window->new( $frame, -1 ) );
+ my $pgmbut1  = Wx::PGMultiButton->new( $propgrid, Wx::Size->new(10,10) );
+ my $pgmbut2  = Wx::PGMultiButton->new($propgrid, Wx::Size->new(10,10));
+ 

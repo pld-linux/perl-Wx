@@ -8,11 +8,12 @@
 #
 # Conditional build:
 %bcond_without	unicode	# ANSI instead of Unicode version of wxGTK
-%bcond_with	gtk3	# wxGTK3 instead of wxGTK2
+%bcond_without	gtk3	# wxGTK3 instead of wxGTK2
 %bcond_with	tests	# "make test" (requires $DISPLAY)
 
 %define		wxpkg	wxGTK%{?with_gtk3:3}%{!?with_gtk3:2}%{?with_unicode:-unicode}
-%define		wx_ver		%(rpm -q wxWidgets-devel --qf '%%{VERSION}')
+%define		wx_config	wx-gtk%{?with_gtk3:3}%{!?with_gtk3:2}%{?with_unicode:-unicode}%{!?with_unicode:-ansi}-config
+%define		wx_ver		%(%{wx_config} --version)
 %define		wx_ver_tag	%(echo %{wx_ver} | tr . _)
 %define		alien_wxcfg	gtk%{!?with_gtk3:2}_%{wx_ver_tag}%{?with_unicode:_uni}_gcc_3_4
 %define		pdir	Wx
@@ -20,14 +21,16 @@ Summary:	wxPerl - a Perl wrapper for the wxWidgets C++ GUI toolkit
 Summary(pl.UTF-8):	wxPerl - wrapper toolkitu graficznego C++ wxWidgets dla Perla
 Name:		perl-Wx
 Version:	0.9932
-Release:	7
+Release:	8
 # same as perl
 License:	GPL v1+ or Artistic
 Group:		Development/Languages/Perl
 Source0:	http://www.cpan.org/modules/by-module/Wx/Wx-%{version}.tar.gz
 # Source0-md5:	76f019b04fffec0fda06bf46b0e93046
 Source1:	perl-provides
-Patch0:		method-typo.patch
+Patch0:		gtk3.patch
+Patch1:		wxWidgets_3.2_MakeMaker.patch
+Patch2:		wxWidgets_3.2_port.patch
 URL:		http://wxperl.sourceforge.net/
 BuildRequires:	perl-Alien-wxWidgets >= 0.67
 BuildRequires:	perl-ExtUtils-MakeMaker >= 6.46
@@ -71,7 +74,12 @@ Pakiet do rozwijania oprogramowania przy użyciu wxPerla.
 
 %prep
 %setup -q -n Wx-%{version}
+
+%undos MANIFEST typemap
+
 %patch0 -p1
+%patch1 -p1
+%patch2 -p1
 
 %build
 %{__perl} Makefile.PL \
